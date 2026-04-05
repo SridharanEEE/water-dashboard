@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AquaGuard — Water Safety Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root {
+  --safe: #00e676; --warn: #ffb300; --danger: #ff1744;
+  --bg: #050d1a; --card: #0a1628; --card2: #0d1f38;
+  --border: #0d3060; --text: #cde4ff; --muted: #4a7aa0;
+  --accent: #00b4ff; --purple: #aa44ff;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Exo 2',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* ── LOGIN SCREEN ── */
+#loginScreen{
+  position:fixed;inset:0;background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  z-index:1000;
+  background-image:radial-gradient(ellipse at 20% 30%,rgba(0,100,255,0.1) 0%,transparent 60%),
+                   radial-gradient(ellipse at 80% 70%,rgba(0,200,255,0.07) 0%,transparent 60%);
+}
+.login-logo{font-size:3rem;font-weight:800;color:var(--accent);letter-spacing:4px;margin-bottom:6px;}
+.login-logo span{color:var(--safe);}
+.login-sub{font-family:'Share Tech Mono',monospace;font-size:0.75rem;color:var(--muted);letter-spacing:2px;margin-bottom:40px;}
+.login-card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:32px 36px;width:360px;max-width:95vw;}
+.login-title{font-size:1rem;font-weight:700;color:var(--text);margin-bottom:6px;letter-spacing:1px;}
+.login-desc{font-size:0.78rem;color:var(--muted);margin-bottom:24px;font-family:'Share Tech Mono',monospace;}
+.role-btns{display:flex;flex-direction:column;gap:12px;}
+.role-btn{
+  padding:14px 18px;border-radius:12px;border:none;cursor:pointer;
+  display:flex;align-items:center;gap:14px;transition:all 0.2s;
+  font-family:'Exo 2',sans-serif;font-weight:700;font-size:0.95rem;
+}
+.role-btn:hover{transform:translateX(4px);}
+.role-btn .rbicon{font-size:1.5rem;}
+.role-btn .rbinfo{text-align:left;}
+.role-btn .rbinfo small{display:block;font-size:0.68rem;font-weight:400;opacity:0.7;margin-top:2px;}
+.rb-officer{background:linear-gradient(135deg,#003060,#005090);border:1px solid var(--accent);color:var(--accent);}
+.rb-village{background:linear-gradient(135deg,#302000,#504000);border:1px solid var(--warn);color:var(--warn);}
+.rb-public{background:linear-gradient(135deg,#003020,#005040);border:1px solid var(--safe);color:var(--safe);}
+
+/* ── TOP BAR ── */
+.topbar{
+  background:rgba(10,22,40,0.97);border-bottom:1px solid var(--border);
+  padding:12px 20px;display:flex;justify-content:space-between;align-items:center;
+  position:sticky;top:0;z-index:100;backdrop-filter:blur(10px);
+}
+.logo{font-size:1.2rem;font-weight:800;color:var(--accent);letter-spacing:2px;}
+.logo span{color:var(--safe);}
+.topbar-center{display:flex;gap:6px;}
+.nav-btn{
+  padding:6px 14px;border-radius:8px;border:1px solid var(--border);
+  background:transparent;color:var(--muted);cursor:pointer;font-size:0.78rem;
+  font-family:'Exo 2',sans-serif;font-weight:600;transition:all 0.2s;
+}
+.nav-btn.active,.nav-btn:hover{background:var(--accent);color:#fff;border-color:var(--accent);}
+.topbar-right{display:flex;align-items:center;gap:12px;font-family:'Share Tech Mono',monospace;font-size:0.7rem;color:var(--muted);}
+.live-dot{width:7px;height:7px;background:var(--safe);border-radius:50%;display:inline-block;margin-right:4px;animation:blink 1.2s infinite;}
+.role-badge{padding:4px 10px;border-radius:20px;font-size:0.65rem;font-weight:700;letter-spacing:1px;}
+.rb-o{background:rgba(0,180,255,0.15);color:var(--accent);border:1px solid var(--accent);}
+.rb-v{background:rgba(255,179,0,0.15);color:var(--warn);border:1px solid var(--warn);}
+.rb-p{background:rgba(0,230,118,0.15);color:var(--safe);border:1px solid var(--safe);}
+.logout-btn{padding:5px 12px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:0.72rem;font-family:'Exo 2',sans-serif;}
+.logout-btn:hover{border-color:var(--danger);color:var(--danger);}
+
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}
+
+/* ── MAIN ── */
+.main{padding:20px;max-width:1100px;margin:0 auto;}
+.view{display:none;}
+.view.active{display:block;}
+
+/* ── CARDS ── */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center;transition:transform 0.2s;}
+.stat-card:hover{transform:translateY(-2px);}
+.stat-num{font-size:2.2rem;font-weight:800;line-height:1;margin-bottom:4px;}
+.stat-label{font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;}
+.s-green{color:var(--safe);} .s-red{color:var(--danger);} .s-yellow{color:var(--warn);} .s-blue{color:var(--accent);}
+
+/* ── ALERT BANNER ── */
+.alert-banner{background:rgba(255,23,68,0.1);border:1px solid var(--danger);border-radius:10px;padding:12px 18px;margin-bottom:18px;display:flex;align-items:center;gap:12px;animation:pulse-b 2s infinite;}
+@keyframes pulse-b{0%,100%{box-shadow:0 0 0 0 rgba(255,23,68,0.3)}50%{box-shadow:0 0 0 6px rgba(255,23,68,0)}}
+.alert-text{font-size:0.85rem;flex:1;}
+.alert-text strong{color:var(--danger);}
+.alert-time{font-family:'Share Tech Mono',monospace;font-size:0.68rem;color:var(--muted);}
+
+/* ── SECTION TITLE ── */
+.sec-title{font-size:0.7rem;font-family:'Share Tech Mono',monospace;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:12px;border-left:3px solid var(--accent);padding-left:10px;}
+
+/* ── TANK GRID ── */
+.tank-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px;margin-bottom:24px;}
+.tank-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;cursor:pointer;transition:transform 0.2s,box-shadow 0.2s;position:relative;overflow:hidden;}
+.tank-card:hover{transform:translateY(-3px);box-shadow:0 8px 30px rgba(0,0,0,0.4);}
+.tank-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.tank-card.safe::before{background:var(--safe);}
+.tank-card.warn::before{background:var(--warn);}
+.tank-card.danger::before{background:var(--danger);box-shadow:0 0 10px var(--danger);}
+.tank-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;}
+.tank-name{font-size:0.92rem;font-weight:700;}
+.tank-loc{font-size:0.68rem;color:var(--muted);margin-top:2px;font-family:'Share Tech Mono',monospace;}
+.badge{font-size:0.62rem;font-family:'Share Tech Mono',monospace;font-weight:700;letter-spacing:1px;padding:3px 9px;border-radius:20px;text-transform:uppercase;}
+.badge-safe{background:rgba(0,230,118,0.15);color:var(--safe);border:1px solid var(--safe);}
+.badge-warn{background:rgba(255,179,0,0.15);color:var(--warn);border:1px solid var(--warn);}
+.badge-danger{background:rgba(255,23,68,0.15);color:var(--danger);border:1px solid var(--danger);animation:blink 1s infinite;}
+.params{display:flex;flex-direction:column;gap:7px;}
+.param-row{display:flex;align-items:center;gap:8px;}
+.param-name{font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:var(--muted);width:78px;flex-shrink:0;}
+.pbar-bg{flex:1;height:5px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;}
+.pbar{height:100%;border-radius:3px;}
+.bar-safe{background:linear-gradient(90deg,#00b09b,#00e676);}
+.bar-warn{background:linear-gradient(90deg,#f7971e,#ffb300);}
+.bar-danger{background:linear-gradient(90deg,#c0392b,#ff1744);}
+.param-val{font-family:'Share Tech Mono',monospace;font-size:0.7rem;width:68px;text-align:right;flex-shrink:0;}
+.val-safe{color:var(--safe);} .val-warn{color:var(--warn);} .val-danger{color:var(--danger);}
+.tank-footer{display:flex;justify-content:space-between;margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.05);font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:var(--muted);}
+
+/* ── VILLAGE VIEW ── */
+.village-header{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:18px;display:flex;align-items:center;gap:20px;}
+.village-icon{font-size:3rem;}
+.village-name{font-size:1.4rem;font-weight:800;}
+.village-sub{font-size:0.78rem;color:var(--muted);font-family:'Share Tech Mono',monospace;margin-top:4px;}
+.village-status{margin-left:auto;text-align:center;}
+.big-status{font-size:3.5rem;}
+.big-status-label{font-size:0.75rem;font-family:'Share Tech Mono',monospace;font-weight:700;letter-spacing:2px;}
+
+.param-big-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:18px;}
+.param-big-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center;}
+.param-big-card.safe-card{border-color:var(--safe);}
+.param-big-card.warn-card{border-color:var(--warn);}
+.param-big-card.danger-card{border-color:var(--danger);animation:pulse-b 2s infinite;}
+.param-icon{font-size:1.8rem;margin-bottom:6px;}
+.param-big-name{font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:var(--muted);letter-spacing:1px;margin-bottom:6px;}
+.param-big-val{font-size:1.4rem;font-weight:800;margin-bottom:4px;}
+.param-big-status{font-size:0.65rem;font-family:'Share Tech Mono',monospace;font-weight:700;letter-spacing:1px;}
+
+.sms-preview{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:18px;}
+.sms-bubble{background:rgba(0,180,255,0.08);border:1px solid rgba(0,180,255,0.3);border-radius:12px 12px 12px 0;padding:14px 18px;max-width:420px;font-family:'Share Tech Mono',monospace;font-size:0.82rem;line-height:1.8;}
+.sms-time{font-size:0.65rem;color:var(--muted);margin-top:6px;}
+
+/* ── PUBLIC VIEW ── */
+.public-view{max-width:480px;margin:0 auto;padding:10px;}
+.public-tank-header{text-align:center;padding:24px 0 16px;}
+.public-tank-name{font-size:1.3rem;font-weight:800;margin-bottom:4px;}
+.public-tank-loc{font-size:0.75rem;color:var(--muted);font-family:'Share Tech Mono',monospace;}
+
+.traffic-light{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:30px 20px;text-align:center;margin-bottom:18px;}
+.tl-housing{background:#111;border-radius:16px;padding:20px;display:inline-flex;flex-direction:column;gap:14px;margin-bottom:20px;border:3px solid #222;}
+.tl-bulb{width:80px;height:80px;border-radius:50%;margin:0 auto;transition:all 0.5s;}
+.tl-bulb.on-green{background:var(--safe);box-shadow:0 0 40px var(--safe),0 0 80px rgba(0,230,118,0.4);}
+.tl-bulb.on-yellow{background:var(--warn);box-shadow:0 0 40px var(--warn),0 0 80px rgba(255,179,0,0.4);}
+.tl-bulb.on-red{background:var(--danger);box-shadow:0 0 40px var(--danger),0 0 80px rgba(255,23,68,0.4);animation:blink-red 1s infinite;}
+.tl-bulb.off{background:#1a1a1a;box-shadow:none;}
+@keyframes blink-red{0%,100%{opacity:1}50%{opacity:0.4}}
+.tl-message{font-size:1.5rem;font-weight:800;margin-bottom:6px;}
+.tl-submessage{font-size:0.85rem;color:var(--muted);}
+.tl-updated{font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:var(--muted);margin-top:12px;}
+
+.public-params{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;}
+.pub-param{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center;}
+.pub-param-icon{font-size:1.4rem;margin-bottom:4px;}
+.pub-param-name{font-size:0.65rem;font-family:'Share Tech Mono',monospace;color:var(--muted);letter-spacing:1px;margin-bottom:6px;}
+.pub-param-status{font-size:0.85rem;font-weight:700;}
+
+.public-advisory{border-radius:12px;padding:16px 18px;margin-bottom:14px;}
+.advisory-safe{background:rgba(0,230,118,0.08);border:1px solid var(--safe);}
+.advisory-danger{background:rgba(255,23,68,0.08);border:1px solid var(--danger);}
+.advisory-title{font-size:0.88rem;font-weight:700;margin-bottom:6px;}
+.advisory-text{font-size:0.78rem;color:var(--muted);line-height:1.6;}
+
+/* ── ALERT LOG TABLE ── */
+.table-wrap{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:20px;}
+.table-wrap table{width:100%;border-collapse:collapse;}
+.table-wrap th{background:var(--card2);font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;padding:11px 14px;text-align:left;border-bottom:1px solid var(--border);}
+.table-wrap td{padding:11px 14px;font-size:0.8rem;border-bottom:1px solid rgba(255,255,255,0.04);}
+.table-wrap tr:last-child td{border-bottom:none;}
+.table-wrap tr:hover td{background:rgba(255,255,255,0.02);}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;}
+.dot-safe{background:var(--safe);box-shadow:0 0 5px var(--safe);}
+.dot-warn{background:var(--warn);box-shadow:0 0 5px var(--warn);}
+.dot-danger{background:var(--danger);box-shadow:0 0 5px var(--danger);animation:blink 1s infinite;}
+
+/* ── FOOTER ── */
+.footer{text-align:center;font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:var(--muted);padding:16px;letter-spacing:1px;}
+
+@media(max-width:600px){
+  .stats-row{grid-template-columns:repeat(2,1fr);}
+  .tank-grid{grid-template-columns:1fr;}
+  .param-big-grid{grid-template-columns:repeat(3,1fr);}
+  .topbar-center{display:none;}
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════ LOGIN SCREEN ══════════ -->
+<div id="loginScreen">
+  <div class="login-logo">Aqua<span>Guard</span></div>
+  <div class="login-sub">// SMART WATER MONITORING SYSTEM //</div>
+  <div class="login-card">
+    <div class="login-title">Select Your Role</div>
+    <div class="login-desc">Choose who you are to see your dashboard</div>
+    <div class="role-btns">
+      <button class="role-btn rb-officer" onclick="login('officer')">
+        <span class="rbicon">👮</span>
+        <div class="rbinfo">Field Officer / Department Head<small>Full dashboard · All tanks · Detailed readings · Alerts</small></div>
+      </button>
+      <button class="role-btn rb-village" onclick="login('village')">
+        <span class="rbicon">🏘️</span>
+        <div class="rbinfo">Village Head / Panchayat<small>Your village tank · SMS preview · Simple status</small></div>
+      </button>
+      <button class="role-btn rb-public" onclick="login('public')">
+        <span class="rbicon">👨‍👩‍👧</span>
+        <div class="rbinfo">Common Public<small>Is my water safe to drink right now?</small></div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ APP ══════════ -->
+<div id="app" style="display:none;">
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="logo">Aqua<span>Guard</span></div>
+  <div class="topbar-center" id="navBtns"></div>
+  <div class="topbar-right">
+    <span><span class="live-dot"></span>LIVE</span>
+    <span id="clock">--:--:--</span>
+    <span id="roleBadge" class="role-badge"></span>
+    <button class="logout-btn" onclick="logout()">⏻ Exit</button>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- ══ OFFICER VIEW ══ -->
+  <div id="view-officer" class="view">
+
+    <!-- Alert -->
+    <div class="alert-banner">
+      <span style="font-size:1.3rem">🚨</span>
+      <div class="alert-text"><strong>ALERT:</strong> Tank 1 — Kolathur Village — Chlorine critically low (0.08 mg/L). Immediate chlorination required.</div>
+      <div class="alert-time">Just now</div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-num s-blue">7</div><div class="stat-label">Total Tanks</div></div>
+      <div class="stat-card"><div class="stat-num s-green">5</div><div class="stat-label">Safe</div></div>
+      <div class="stat-card"><div class="stat-num s-yellow">1</div><div class="stat-label">Warning</div></div>
+      <div class="stat-card"><div class="stat-num s-red">1</div><div class="stat-label">Critical</div></div>
+    </div>
+
+    <!-- Nav tabs -->
+    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+      <button class="nav-btn active" onclick="officerTab('tanks',this)">🏗️ All Tanks</button>
+      <button class="nav-btn" onclick="officerTab('alerts',this)">🚨 Alert Log</button>
+      <button class="nav-btn" onclick="officerTab('zone',this)">📍 Zone View</button>
+    </div>
+
+    <!-- Tanks -->
+    <div id="o-tanks">
+      <div class="sec-title">Live Tank Status — All Villages</div>
+      <div class="tank-grid" id="tankGrid"></div>
+    </div>
+
+    <!-- Alert log -->
+    <div id="o-alerts" style="display:none;">
+      <div class="sec-title">Recent Alert Log</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Time</th><th>Tank / Zone</th><th>Parameter</th><th>Value</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td style="font-family:'Share Tech Mono',monospace;font-size:0.7rem;" class="val-danger">Just now</td><td>Tank 1 — Kolathur Zone B</td><td>Chlorine</td><td class="val-danger">0.08 mg/L ↓</td><td style="color:var(--danger)">Chlorinate immediately</td></tr>
+            <tr><td style="font-family:'Share Tech Mono',monospace;font-size:0.7rem;" class="val-warn">2 hrs ago</td><td>Tank 3 — Ariyalur</td><td>Turbidity</td><td class="val-warn">3.8 NTU ↑</td><td style="color:var(--warn)">Check pipe condition</td></tr>
+            <tr><td style="font-family:'Share Tech Mono',monospace;font-size:0.7rem;color:var(--muted)">Yesterday</td><td>Tank 5 — Thanjavur</td><td>Chlorine</td><td class="val-warn">0.15 mg/L ↓</td><td style="color:var(--safe)">✅ Resolved</td></tr>
+            <tr><td style="font-family:'Share Tech Mono',monospace;font-size:0.7rem;color:var(--muted)">Yesterday</td><td>Tank 6 — Orathanadu</td><td>pH</td><td class="val-warn">8.6 ↑</td><td style="color:var(--safe)">✅ Resolved</td></tr>
+            <tr><td style="font-family:'Share Tech Mono',monospace;font-size:0.7rem;color:var(--muted)">2 days ago</td><td>Tank 2 — Papanasam</td><td>TDS</td><td style="color:var(--muted)">Normal range</td><td style="color:var(--safe)">✅ No action needed</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Zone view -->
+    <div id="o-zone" style="display:none;">
+      <div class="sec-title">Zone Based Monitoring — Kolathur Village (Tank 1)</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Zone</th><th>Houses</th><th>Chlorine</th><th>pH</th><th>Turbidity</th><th>TDS</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td>🏗️ Tank Source</td><td>—</td><td class="val-safe">0.42 mg/L</td><td class="val-safe">7.1</td><td class="val-safe">1.2 NTU</td><td class="val-safe">210 ppm</td><td><span class="dot dot-safe"></span>SAFE</td></tr>
+            <tr><td>Zone A Entry</td><td>1–50</td><td class="val-safe">0.35 mg/L</td><td class="val-safe">7.2</td><td class="val-safe">1.5 NTU</td><td class="val-safe">215 ppm</td><td><span class="dot dot-safe"></span>SAFE</td></tr>
+            <tr><td>Zone A End</td><td>Near #50</td><td class="val-safe">0.28 mg/L</td><td class="val-safe">7.3</td><td class="val-safe">1.8 NTU</td><td class="val-safe">220 ppm</td><td><span class="dot dot-safe"></span>SAFE</td></tr>
+            <tr><td>Zone B Entry</td><td>51–100</td><td class="val-warn">0.18 mg/L</td><td class="val-safe">7.4</td><td class="val-warn">3.8 NTU</td><td class="val-warn">290 ppm</td><td><span class="dot dot-warn"></span>WARNING</td></tr>
+            <tr><td>Zone B End</td><td>Near #100</td><td class="val-danger">0.08 mg/L</td><td class="val-warn">7.8</td><td class="val-danger">5.2 NTU</td><td class="val-danger">340 ppm</td><td><span class="dot dot-danger"></span>CRITICAL</td></tr>
+            <tr><td>Zone C Entry</td><td>101–150</td><td class="val-safe">0.31 mg/L</td><td class="val-safe">7.1</td><td class="val-safe">1.6 NTU</td><td class="val-safe">218 ppm</td><td><span class="dot dot-safe"></span>SAFE</td></tr>
+            <tr><td>Zone C End</td><td>Near #150</td><td class="val-safe">0.22 mg/L</td><td class="val-safe">7.2</td><td class="val-safe">2.1 NTU</td><td class="val-safe">225 ppm</td><td><span class="dot dot-safe"></span>SAFE</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="background:rgba(255,179,0,0.07);border:1px solid var(--warn);border-radius:10px;padding:14px 18px;font-size:0.82rem;color:var(--warn);">
+        ⚠️ <strong>Pipe Issue Detected:</strong> Chlorine drops from 0.42 at tank to 0.08 at Zone B end. Possible old or leaking pipe in Zone B (Houses 51–100). Recommend pipe inspection.
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══ VILLAGE VIEW ══ -->
+  <div id="view-village" class="view">
+
+    <div class="village-header">
+      <div class="village-icon">🏘️</div>
+      <div>
+        <div class="village-name">Kolathur Village</div>
+        <div class="village-sub">Tank 1 · 150 Houses · 3 Zones · Thanjavur District</div>
+        <div style="margin-top:8px;font-family:'Share Tech Mono',monospace;font-size:0.7rem;color:var(--muted);">Last updated: <span id="villageTime">--</span></div>
+      </div>
+      <div class="village-status">
+        <div class="big-status" id="villageStatusIcon">🚨</div>
+        <div class="big-status-label val-danger" id="villageStatusText">CRITICAL</div>
+      </div>
+    </div>
+
+    <!-- 5 param cards -->
+    <div class="sec-title">Current Water Quality Readings</div>
+    <div class="param-big-grid">
+      <div class="param-big-card danger-card">
+        <div class="param-icon">🧪</div>
+        <div class="param-big-name">CHLORINE</div>
+        <div class="param-big-val val-danger">0.08</div>
+        <div class="param-big-status" style="color:var(--danger)">mg/L — LOW ❌</div>
+      </div>
+      <div class="param-big-card safe-card">
+        <div class="param-icon">⚗️</div>
+        <div class="param-big-name">pH LEVEL</div>
+        <div class="param-big-val val-safe">7.8</div>
+        <div class="param-big-status" style="color:var(--safe)">SAFE ✅</div>
+      </div>
+      <div class="param-big-card danger-card">
+        <div class="param-icon">💧</div>
+        <div class="param-big-name">TURBIDITY</div>
+        <div class="param-big-val val-danger">5.2</div>
+        <div class="param-big-status" style="color:var(--danger)">NTU — HIGH ❌</div>
+      </div>
+      <div class="param-big-card safe-card">
+        <div class="param-icon">🌡️</div>
+        <div class="param-big-name">TEMPERATURE</div>
+        <div class="param-big-val val-safe">31°C</div>
+        <div class="param-big-status" style="color:var(--safe)">NORMAL ✅</div>
+      </div>
+      <div class="param-big-card warn-card">
+        <div class="param-icon">🔬</div>
+        <div class="param-big-name">TDS</div>
+        <div class="param-big-val val-warn">340</div>
+        <div class="param-big-status" style="color:var(--warn)">ppm — HIGH ⚠️</div>
+      </div>
+    </div>
+
+    <!-- SMS Preview -->
+    <div class="sec-title">Automatic SMS Sent to You</div>
+    <div class="sms-preview">
+      <div style="font-size:0.7rem;color:var(--muted);font-family:'Share Tech Mono',monospace;margin-bottom:10px;">FROM: AQUAGUARD SYSTEM</div>
+      <div class="sms-bubble">
+        KOLATHUR VILLAGE — TANK STATUS<br><br>
+        🚨 ALERT — Action Required<br><br>
+        Chlorine  : ❌ LOW (0.08 mg/L)<br>
+        pH Level  : ✅ Safe (7.8)<br>
+        Turbidity : ❌ HIGH (5.2 NTU)<br>
+        Temp      : ✅ Normal (31°C)<br>
+        TDS       : ⚠️ High (340 ppm)<br><br>
+        ⚠️ Please contact field officer immediately.<br>
+        Do NOT use water until chlorinated.<br><br>
+        — AquaGuard System
+      </div>
+      <div class="sms-time">Sent automatically · <span id="smsTime">--</span> · Next SMS in 2 hours</div>
+    </div>
+
+    <!-- Action -->
+    <div style="background:rgba(255,23,68,0.08);border:1px solid var(--danger);border-radius:12px;padding:16px 18px;">
+      <div style="font-size:0.9rem;font-weight:700;color:var(--danger);margin-bottom:6px;">🚨 Immediate Action Required</div>
+      <div style="font-size:0.82rem;color:var(--muted);line-height:1.6;">Contact your field officer immediately. Inform residents in Zone B (Houses 51–100) to not use water until chlorination is completed and system shows GREEN status.</div>
+    </div>
+
+  </div>
+
+  <!-- ══ PUBLIC VIEW ══ -->
+  <div id="view-public" class="view">
+    <div class="public-view">
+
+      <div class="public-tank-header">
+        <div class="public-tank-name">Kolathur Village — Tank 1</div>
+        <div class="public-tank-loc">📍 Thanjavur District · Your Local Water Supply</div>
+      </div>
+
+      <!-- Traffic Light -->
+      <div class="traffic-light">
+        <div class="tl-housing">
+          <div class="tl-bulb off" id="tl-red"></div>
+          <div class="tl-bulb off" id="tl-yellow"></div>
+          <div class="tl-bulb off" id="tl-green"></div>
+        </div>
+        <div class="tl-message" id="tlMessage">Checking...</div>
+        <div class="tl-submessage" id="tlSub"></div>
+        <div class="tl-updated">Last checked: 8 minutes ago · Auto-updates every 30 mins</div>
+      </div>
+
+      <!-- Simple params -->
+      <div class="sec-title">Water Quality Summary</div>
+      <div class="public-params">
+        <div class="pub-param">
+          <div class="pub-param-icon">🧪</div>
+          <div class="pub-param-name">CHLORINE</div>
+          <div class="pub-param-status val-danger">❌ Too Low</div>
+        </div>
+        <div class="pub-param">
+          <div class="pub-param-icon">⚗️</div>
+          <div class="pub-param-name">pH LEVEL</div>
+          <div class="pub-param-status val-safe">✅ Safe</div>
+        </div>
+        <div class="pub-param">
+          <div class="pub-param-icon">💧</div>
+          <div class="pub-param-name">CLARITY</div>
+          <div class="pub-param-status val-danger">❌ Muddy</div>
+        </div>
+        <div class="pub-param">
+          <div class="pub-param-icon">🌡️</div>
+          <div class="pub-param-name">TEMPERATURE</div>
+          <div class="pub-param-status val-safe">✅ Normal</div>
+        </div>
+      </div>
+
+      <!-- Advisory -->
+      <div class="public-advisory advisory-danger">
+        <div class="advisory-title" style="color:var(--danger)">🚨 Do NOT drink this water right now</div>
+        <div class="advisory-text">Chlorine level is too low. Water may be unsafe. Wait for the light to turn GREEN before using. The village head and field officer have been notified automatically.</div>
+      </div>
+
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 18px;text-align:center;">
+        <div style="font-size:0.7rem;font-family:'Share Tech Mono',monospace;color:var(--muted);margin-bottom:6px;">WHEN WILL IT BE SAFE?</div>
+        <div style="font-size:1rem;font-weight:700;color:var(--warn);">Officer has been alerted · Usually fixed within 2–3 hours</div>
+        <div style="font-size:0.75rem;color:var(--muted);margin-top:4px;">This page will automatically show GREEN when water is safe again</div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">↻ AUTO REFRESH EVERY 30 MINUTES · LORA MESH NETWORK · SOLAR POWERED · AQUAGUARD v1.0</div>
+</div>
+
+<script>
+// ── DATA ──
+const tanks = [
+  { name:"Tank 1 — Kolathur",   loc:"Kolathur Village · 150 houses",  status:"danger", badge:"CRITICAL",
+    params:[{n:"CHLORINE",v:"0.08 mg/L",p:16,l:"danger"},{n:"pH LEVEL",v:"7.8",p:72,l:"warn"},{n:"TURBIDITY",v:"5.2 NTU",p:85,l:"danger"},{n:"TEMP",v:"31°C",p:40,l:"safe"},{n:"TDS",v:"340 ppm",p:68,l:"warn"}],
+    updated:"2 min ago"},
+  { name:"Tank 2 — Papanasam",   loc:"Papanasam · 90 houses",          status:"safe",   badge:"SAFE",
+    params:[{n:"CHLORINE",v:"0.38 mg/L",p:76,l:"safe"},{n:"pH LEVEL",v:"7.2",p:62,l:"safe"},{n:"TURBIDITY",v:"1.4 NTU",p:28,l:"safe"},{n:"TEMP",v:"29°C",p:35,l:"safe"},{n:"TDS",v:"195 ppm",p:39,l:"safe"}],
+    updated:"5 min ago"},
+  { name:"Tank 3 — Ariyalur",    loc:"Ariyalur North · 80 houses",     status:"warn",   badge:"WARNING",
+    params:[{n:"CHLORINE",v:"0.17 mg/L",p:34,l:"warn"},{n:"pH LEVEL",v:"7.5",p:65,l:"safe"},{n:"TURBIDITY",v:"2.9 NTU",p:58,l:"warn"},{n:"TEMP",v:"33°C",p:55,l:"safe"},{n:"TDS",v:"248 ppm",p:50,l:"safe"}],
+    updated:"8 min ago"},
+  { name:"Tank 4 — Kumbakonam",  loc:"Kumbakonam East · 120 houses",   status:"safe",   badge:"SAFE",
+    params:[{n:"CHLORINE",v:"0.41 mg/L",p:82,l:"safe"},{n:"pH LEVEL",v:"7.0",p:55,l:"safe"},{n:"TURBIDITY",v:"1.1 NTU",p:22,l:"safe"},{n:"TEMP",v:"28°C",p:30,l:"safe"},{n:"TDS",v:"180 ppm",p:36,l:"safe"}],
+    updated:"3 min ago"},
+  { name:"Tank 5 — Thanjavur",   loc:"Thanjavur South · 70 houses",    status:"safe",   badge:"SAFE",
+    params:[{n:"CHLORINE",v:"0.33 mg/L",p:66,l:"safe"},{n:"pH LEVEL",v:"7.3",p:63,l:"safe"},{n:"TURBIDITY",v:"1.8 NTU",p:36,l:"safe"},{n:"TEMP",v:"30°C",p:38,l:"safe"},{n:"TDS",v:"210 ppm",p:42,l:"safe"}],
+    updated:"12 min ago"},
+  { name:"Tank 6 — Orathanadu",  loc:"Orathanadu · 40 houses",         status:"safe",   badge:"SAFE",
+    params:[{n:"CHLORINE",v:"0.29 mg/L",p:58,l:"safe"},{n:"pH LEVEL",v:"7.1",p:57,l:"safe"},{n:"TURBIDITY",v:"2.2 NTU",p:44,l:"safe"},{n:"TEMP",v:"29°C",p:33,l:"safe"},{n:"TDS",v:"198 ppm",p:40,l:"safe"}],
+    updated:"18 min ago"},
+  { name:"Tank 7 — Budalur",     loc:"Budalur · 65 houses",            status:"safe",   badge:"SAFE",
+    params:[{n:"CHLORINE",v:"0.44 mg/L",p:88,l:"safe"},{n:"pH LEVEL",v:"6.9",p:52,l:"safe"},{n:"TURBIDITY",v:"1.3 NTU",p:26,l:"safe"},{n:"TEMP",v:"27°C",p:28,l:"safe"},{n:"TDS",v:"172 ppm",p:34,l:"safe"}],
+    updated:"6 min ago"},
+];
+
+let currentRole = null;
+
+// ── LOGIN ──
+function login(role) {
+  currentRole = role;
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+
+  // Role badge
+  const badge = document.getElementById('roleBadge');
+  const labels = { officer:'👮 OFFICER', village:'🏘️ VILLAGE HEAD', public:'👨‍👩‍👧 PUBLIC' };
+  const classes = { officer:'rb-o', village:'rb-v', public:'rb-p' };
+  badge.textContent = labels[role];
+  badge.className = 'role-badge ' + classes[role];
+
+  // Nav buttons
+  const navBtns = document.getElementById('navBtns');
+  navBtns.innerHTML = '';
+  if (role === 'officer') {
+    navBtns.innerHTML = `
+      <button class="nav-btn active" onclick="showView('officer')">👮 Officer View</button>
+    `;
+  } else if (role === 'village') {
+    navBtns.innerHTML = `<button class="nav-btn active" onclick="showView('village')">🏘️ Village View</button>`;
+  } else {
+    navBtns.innerHTML = `<button class="nav-btn active" onclick="showView('public')">👨‍👩‍👧 Public View</button>`;
+  }
+
+  showView(role);
+  renderTanks();
+  setTrafficLight('danger');
+  updateTimes();
+}
+
+function logout() {
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+}
+
+// ── VIEWS ──
+function showView(v) {
+  document.querySelectorAll('.view').forEach(x => x.classList.remove('active'));
+  document.getElementById('view-' + v).classList.add('active');
+}
+
+// ── OFFICER TABS ──
+function officerTab(tab, btn) {
+  document.getElementById('o-tanks').style.display  = tab==='tanks'  ? 'block' : 'none';
+  document.getElementById('o-alerts').style.display = tab==='alerts' ? 'block' : 'none';
+  document.getElementById('o-zone').style.display   = tab==='zone'   ? 'block' : 'none';
+  document.querySelectorAll('#view-officer .nav-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+}
+
+// ── RENDER TANKS ──
+function renderTanks() {
+  document.getElementById('tankGrid').innerHTML = tanks.map(t => `
+    <div class="tank-card ${t.status}">
+      <div class="tank-header">
+        <div><div class="tank-name">${t.name}</div><div class="tank-loc">📍 ${t.loc}</div></div>
+        <span class="badge badge-${t.status==='danger'?'danger':t.status==='warn'?'warn':'safe'}">${t.badge}</span>
+      </div>
+      <div class="params">
+        ${t.params.map(p=>`
+          <div class="param-row">
+            <span class="param-name">${p.n}</span>
+            <div class="pbar-bg"><div class="pbar bar-${p.l}" style="width:${p.p}%"></div></div>
+            <span class="param-val val-${p.l}">${p.v}</span>
+          </div>`).join('')}
+      </div>
+      <div class="tank-footer">
+        <span>🕐 ${t.updated}</span>
+        <span>📡 LoRa</span>
+      </div>
+    </div>`).join('');
+}
+
+// ── TRAFFIC LIGHT ──
+function setTrafficLight(status) {
+  const r = document.getElementById('tl-red');
+  const y = document.getElementById('tl-yellow');
+  const g = document.getElementById('tl-green');
+  const msg = document.getElementById('tlMessage');
+  const sub = document.getElementById('tlSub');
+  r.className = 'tl-bulb off';
+  y.className = 'tl-bulb off';
+  g.className = 'tl-bulb off';
+  if (status === 'safe') {
+    g.className = 'tl-bulb on-green';
+    msg.textContent = '✅ SAFE TO DRINK';
+    msg.style.color = 'var(--safe)';
+    sub.textContent = 'Water quality is good. You can drink safely.';
+  } else if (status === 'warn') {
+    y.className = 'tl-bulb on-yellow';
+    msg.textContent = '⚠️ USE WITH CAUTION';
+    msg.style.color = 'var(--warn)';
+    sub.textContent = 'Water quality is borderline. Boil before drinking.';
+  } else {
+    r.className = 'tl-bulb on-red';
+    msg.textContent = '🚨 DO NOT DRINK';
+    msg.style.color = 'var(--danger)';
+    sub.textContent = 'Water is unsafe. Officer has been alerted.';
+  }
+}
+
+// ── CLOCK ──
+function updateTimes() {
+  const now = new Date();
+  const t = now.toLocaleTimeString('en-IN');
+  document.getElementById('clock').textContent = t;
+  const vt = document.getElementById('villageTime');
+  if (vt) vt.textContent = t;
+  const st = document.getElementById('smsTime');
+  if (st) st.textContent = t;
+}
+
+setInterval(() => { updateTimes(); }, 1000);
+</script>
+</body>
+</html>
